@@ -1,4 +1,4 @@
-import axios, { type InternalAxiosRequestConfig } from 'axios';
+﻿import axios, { type InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -32,12 +32,24 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Response interceptor: redirect to /login on 401
+// Response interceptor: redirect to /login on 401, but only when:
+// 1. Not already on an auth page (avoids redirect loop)
+// 2. Not a session-check request (AuthContext already handles that silently)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+    if (
+      error.response?.status === 401 &&
+      typeof window !== 'undefined'
+    ) {
+      const url = error.config?.url ?? '';
+      const pathname = window.location.pathname;
+
+      // Skip redirect for the session-check call and when already on auth pages
+      const isAuthPage = pathname === '/login' || pathname === '/register';
+      const isSessionCheck = url.includes('/api/auth/me');
+
+      if (!isAuthPage && !isSessionCheck) {
         window.location.href = '/login';
       }
     }

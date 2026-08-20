@@ -43,7 +43,7 @@ export function ExperienceRewriteConfirm({
     try {
       await apiClient.post<ApiResponse<unknown>>(
         `/api/resumes/${resumeId}/experience/${experienceId}/ai/rewrite/confirm`,
-        { text },
+        { description_text: text },
       );
       onConfirmed(text);
     } catch (err: unknown) {

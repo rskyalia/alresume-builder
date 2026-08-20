@@ -11,6 +11,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\SkillController;
+use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -53,7 +54,22 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     // Share URL — toggle visibility (auth required, must own resume)
     Route::patch('/resumes/{resume}/visibility', [ShareController::class, 'toggleVisibility']);
+
+    // File uploads
+    Route::post('/resumes/{resume}/photo', [UploadController::class, 'uploadPhoto']);
+    Route::delete('/resumes/{resume}/photo', [UploadController::class, 'deletePhoto']);
+    Route::post('/resumes/{resume}/certificates/{certificate}/file', [UploadController::class, 'uploadCertificateFile']);
+    Route::delete('/resumes/{resume}/certificates/{certificate}/file', [UploadController::class, 'deleteCertificateFile']);
 });
 
 // Public resume view — no auth required (Req 9.2, 9.3, 9.4)
 Route::get('/r/{publicSlug}', [ShareController::class, 'show']);
+
+// -- Admin routes � only dev@alresume.internal ------------------------------
+Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
+    ->prefix('admin')
+    ->group(function (): void {
+        Route::get('/users', [\App\Http\Controllers\AdminController::class, 'users']);
+        Route::post('/users/{user}/top-up', [\App\Http\Controllers\AdminController::class, 'topUp']);
+        Route::patch('/users/{user}/plan', [\App\Http\Controllers\AdminController::class, 'setPlan']);
+    });

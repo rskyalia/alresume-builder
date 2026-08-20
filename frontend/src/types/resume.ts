@@ -56,6 +56,8 @@ export interface Certificate {
   issuer: string;
   issue_date: string; // ISO date string: YYYY-MM-DD
   credential_url: string | null;
+  file_path?: string | null;
+  file_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -69,6 +71,7 @@ export interface Resume {
   phone: string | null;
   address: string | null;
   summary: string | null;
+  photo_url?: string | null;
   is_public: boolean;
   public_slug: string | null;
   created_at: string;

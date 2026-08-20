@@ -19,6 +19,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { CertificateFileUpload } from '@/components/resume/CertificateFileUpload';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -182,10 +183,10 @@ export function CertificatesForm({ resumeId }: CertificatesFormProps) {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const res = await apiClient.get<{ data: Certificate[] }>(
+      const res = await apiClient.get<{ data: { certificates: Certificate[] } }>(
         `/api/resumes/${resumeId}/certificates`,
       );
-      setEntries(res.data.data);
+      setEntries(res.data.data.certificates);
     } catch {
       setLoadError('Gagal memuat data sertifikat.');
     } finally {
@@ -209,17 +210,17 @@ export function CertificatesForm({ resumeId }: CertificatesFormProps) {
 
   async function handleSave(data: CertificateInput, id?: string) {
     if (id) {
-      const res = await apiClient.patch<{ data: Certificate }>(
+      const res = await apiClient.patch<{ data: { certificate: Certificate } }>(
         `/api/resumes/${resumeId}/certificates/${id}`,
         data,
       );
-      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data : e)));
+      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data.certificate : e)));
     } else {
-      const res = await apiClient.post<{ data: Certificate }>(
+      const res = await apiClient.post<{ data: { certificate: Certificate } }>(
         `/api/resumes/${resumeId}/certificates`,
         data,
       );
-      setEntries((prev) => [...prev, res.data.data]);
+      setEntries((prev) => [...prev, res.data.data.certificate]);
     }
   }
 
@@ -290,7 +291,24 @@ export function CertificatesForm({ resumeId }: CertificatesFormProps) {
                 </div>
                 <p className="text-sm text-muted-foreground">{entry.issuer}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{entry.issue_date}</p>
+
+                <CertificateFileUpload
+                  resumeId={resumeId}
+                  certificateId={entry.id}
+                  currentFileUrl={entry.file_url ?? null}
+                  onUploaded={(url) =>
+                    setEntries((prev) =>
+                      prev.map((e) => (e.id === entry.id ? { ...e, file_url: url } : e)),
+                    )
+                  }
+                  onDeleted={() =>
+                    setEntries((prev) =>
+                      prev.map((e) => (e.id === entry.id ? { ...e, file_url: null } : e)),
+                    )
+                  }
+                />
               </div>
+
               <div className="flex gap-1 shrink-0">
                 <Button
                   variant="ghost"

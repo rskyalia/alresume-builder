@@ -12,22 +12,37 @@ class PdfTemplateSeeder extends Seeder
      */
     public function run(): void
     {
-        PdfTemplate::create([
-            'name'        => 'ATS Friendly',
-            'slug'        => 'default',
-            'description' => 'Clean single-column template optimised for Applicant Tracking Systems.',
-            'is_pro'      => false,
-            'html_path'   => 'pdf-templates/default.html',
-            'thumbnail'   => null,
-        ]);
+        PdfTemplate::updateOrCreate(
+            ['slug' => 'default'],
+            [
+                'name'        => 'ATS Friendly',
+                'description' => 'Template ATS-friendly satu kolom, cocok untuk semua jenis pekerjaan',
+                'is_pro'      => false,
+                'html_path'   => 'pdf-templates/default.html',
+                'thumbnail'   => null,
+            ]
+        );
 
-        PdfTemplate::create([
-            'name'        => 'Modern Visual',
-            'slug'        => 'modern',
-            'description' => 'Two-column visual template with accent colours. Pro tier.',
-            'is_pro'      => true,
-            'html_path'   => 'pdf-templates/modern.html',
-            'thumbnail'   => null,
-        ]);
+        PdfTemplate::updateOrCreate(
+            ['slug' => 'modern'],
+            [
+                'name'        => 'Modern',
+                'description' => 'Dua kolom modern dengan sidebar warna, cocok untuk desainer dan developer',
+                'is_pro'      => true,
+                'html_path'   => 'pdf-templates/modern.html',
+                'thumbnail'   => null,
+            ]
+        );
+
+        PdfTemplate::updateOrCreate(
+            ['slug' => 'minimal'],
+            [
+                'name'        => 'Minimalis',
+                'description' => 'Desain bersih minimalis, elegan dan profesional',
+                'is_pro'      => false,
+                'html_path'   => 'pdf-templates/minimal.html',
+                'thumbnail'   => null,
+            ]
+        );
     }
 }

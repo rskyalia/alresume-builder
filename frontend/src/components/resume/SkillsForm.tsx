@@ -173,10 +173,10 @@ export function SkillsForm({ resumeId }: SkillsFormProps) {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const res = await apiClient.get<{ data: Skill[] }>(
+      const res = await apiClient.get<{ data: { skills: Skill[] } }>(
         `/api/resumes/${resumeId}/skills`,
       );
-      setEntries(res.data.data);
+      setEntries(res.data.data.skills);
     } catch {
       setLoadError('Gagal memuat data skill.');
     } finally {
@@ -200,17 +200,17 @@ export function SkillsForm({ resumeId }: SkillsFormProps) {
 
   async function handleSave(data: SkillInput, id?: string) {
     if (id) {
-      const res = await apiClient.patch<{ data: Skill }>(
+      const res = await apiClient.patch<{ data: { skill: Skill } }>(
         `/api/resumes/${resumeId}/skills/${id}`,
         data,
       );
-      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data : e)));
+      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data.skill : e)));
     } else {
-      const res = await apiClient.post<{ data: Skill }>(
+      const res = await apiClient.post<{ data: { skill: Skill } }>(
         `/api/resumes/${resumeId}/skills`,
         data,
       );
-      setEntries((prev) => [...prev, res.data.data]);
+      setEntries((prev) => [...prev, res.data.data.skill]);
     }
   }
 

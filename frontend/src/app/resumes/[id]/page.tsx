@@ -53,8 +53,8 @@ export default function ResumeBuilderPage() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const res = await apiClient.get<{ data: Resume }>(`/api/resumes/${id}`);
-      setResume(res.data.data);
+      const res = await apiClient.get<{ data: { resume: Resume } }>(`/api/resumes/${id}`);
+      setResume(res.data.data.resume);
     } catch {
       setLoadError('Gagal memuat resume. Silakan coba lagi.');
     } finally {

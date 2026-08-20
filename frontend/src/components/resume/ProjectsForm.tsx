@@ -184,10 +184,10 @@ export function ProjectsForm({ resumeId }: ProjectsFormProps) {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const res = await apiClient.get<{ data: Project[] }>(
+      const res = await apiClient.get<{ data: { projects: Project[] } }>(
         `/api/resumes/${resumeId}/projects`,
       );
-      setEntries(res.data.data);
+      setEntries(res.data.data.projects);
     } catch {
       setLoadError('Gagal memuat data proyek.');
     } finally {
@@ -211,17 +211,17 @@ export function ProjectsForm({ resumeId }: ProjectsFormProps) {
 
   async function handleSave(data: ProjectInput, id?: string) {
     if (id) {
-      const res = await apiClient.patch<{ data: Project }>(
+      const res = await apiClient.patch<{ data: { project: Project } }>(
         `/api/resumes/${resumeId}/projects/${id}`,
         data,
       );
-      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data : e)));
+      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data.project : e)));
     } else {
-      const res = await apiClient.post<{ data: Project }>(
+      const res = await apiClient.post<{ data: { project: Project } }>(
         `/api/resumes/${resumeId}/projects`,
         data,
       );
-      setEntries((prev) => [...prev, res.data.data]);
+      setEntries((prev) => [...prev, res.data.data.project]);
     }
   }
 

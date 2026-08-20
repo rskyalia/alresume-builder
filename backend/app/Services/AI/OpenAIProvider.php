@@ -6,16 +6,13 @@ use Illuminate\Support\Facades\Http;
 
 class OpenAIProvider
 {
-    /**
-     * Send a prompt to the OpenAI API and return the generated text.
-     *
-     * @throws AIProviderException when the API request fails or returns empty content.
-     */
     public function generate(string $prompt): string
     {
         $apiKey = config('services.openai.key');
 
-        $response = Http::withHeaders([
+        $response = Http::withOptions([
+            'verify' => 'C:\php8.5\cacert.pem',
+        ])->withHeaders([
             'Authorization' => "Bearer {$apiKey}",
             'Content-Type'  => 'application/json',
         ])->post('https://api.openai.com/v1/chat/completions', [

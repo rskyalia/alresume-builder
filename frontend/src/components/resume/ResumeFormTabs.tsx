@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 
@@ -17,15 +17,11 @@ import { SkillsForm } from '@/components/resume/SkillsForm';
 import { ProjectsForm } from '@/components/resume/ProjectsForm';
 import { CertificatesForm } from '@/components/resume/CertificatesForm';
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 export interface ResumeFormTabsProps {
   resumeId: string;
   resume: Resume;
   onResumeUpdated: (updated: Resume) => void;
 }
-
-// ─── Tab config ───────────────────────────────────────────────────────────────
 
 const TABS = [
   { value: 'personal', label: 'Info Pribadi' },
@@ -36,8 +32,6 @@ const TABS = [
   { value: 'certificates', label: 'Sertifikat' },
 ] as const;
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function ResumeFormTabs({
   resumeId,
   resume,
@@ -45,7 +39,6 @@ export function ResumeFormTabs({
 }: ResumeFormTabsProps) {
   return (
     <Tabs defaultValue="personal" className="space-y-4">
-      {/* Tab navigation — scrollable on small screens */}
       <TabsList className="flex h-auto flex-wrap gap-1 bg-muted p-1">
         {TABS.map(({ value, label }) => (
           <TabsTrigger key={value} value={value} className="flex-shrink-0">
@@ -54,7 +47,8 @@ export function ResumeFormTabs({
         ))}
       </TabsList>
 
-      <TabsContent value="personal">
+      {/* forceMount: keep components mounted when switching tabs so state/data is preserved */}
+      <TabsContent value="personal" forceMount className="data-[state=inactive]:hidden">
         <PersonalInfoForm
           resumeId={resumeId}
           resume={resume}
@@ -62,23 +56,23 @@ export function ResumeFormTabs({
         />
       </TabsContent>
 
-      <TabsContent value="education">
+      <TabsContent value="education" forceMount className="data-[state=inactive]:hidden">
         <EducationForm resumeId={resumeId} />
       </TabsContent>
 
-      <TabsContent value="experience">
+      <TabsContent value="experience" forceMount className="data-[state=inactive]:hidden">
         <ExperienceForm resumeId={resumeId} />
       </TabsContent>
 
-      <TabsContent value="skills">
+      <TabsContent value="skills" forceMount className="data-[state=inactive]:hidden">
         <SkillsForm resumeId={resumeId} />
       </TabsContent>
 
-      <TabsContent value="projects">
+      <TabsContent value="projects" forceMount className="data-[state=inactive]:hidden">
         <ProjectsForm resumeId={resumeId} />
       </TabsContent>
 
-      <TabsContent value="certificates">
+      <TabsContent value="certificates" forceMount className="data-[state=inactive]:hidden">
         <CertificatesForm resumeId={resumeId} />
       </TabsContent>
     </Tabs>

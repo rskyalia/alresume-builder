@@ -69,18 +69,17 @@
 <body>
 
     {{-- ═══ HEADER ═══ --}}
-    <div class="header">
-        <h1>{{ $resume->full_name }}</h1>
-        <div class="contact">
-            @if($resume->phone)
-                <span>{{ $resume->phone }}</span>
-            @endif
-            @if(isset($user) && $user->email)
-                <span>{{ $user->email }}</span>
-            @endif
-            @if($resume->address)
-                <span>{{ $resume->address }}</span>
-            @endif
+    <div class="header" style="display:flex; align-items:center; gap:20px; text-align:left;">
+        @if($resume->photo_url)
+        <img src="{{ $resume->photo_url }}" alt="Foto Profil"
+             style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:2px solid #e5e5e5;flex-shrink:0;" />
+        @endif
+        <div>
+            <h1>{{ $resume->full_name ?? $resume->title }}</h1>
+            <div class="contact">
+                @if($resume->phone)<span>{{ $resume->phone }}</span>@endif
+                @if($resume->address)<span>{{ $resume->address }}</span>@endif
+            </div>
         </div>
     </div>
 

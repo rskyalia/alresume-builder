@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Resume extends Model
 {
@@ -19,9 +20,19 @@ class Resume extends Model
         'phone',
         'address',
         'summary',
+        'photo_path',
         'is_public',
         'public_slug',
     ];
+
+    protected $appends = ['photo_url'];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo_path
+            ? Storage::disk('public')->url($this->photo_path)
+            : null;
+    }
 
     protected function casts(): array
     {

@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -14,17 +14,13 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-
-// ─── Props ────────────────────────────────────────────────────────────────────
+import { PhotoUpload } from '@/components/resume/PhotoUpload';
 
 export interface PersonalInfoFormProps {
   resumeId: string;
   resume: Resume;
-  /** Called after a successful save with the updated resume data. */
   onSaved?: (updated: Resume) => void;
 }
-
-// ─── Field wrapper ────────────────────────────────────────────────────────────
 
 function Field({
   label,
@@ -49,8 +45,6 @@ function Field({
   );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function PersonalInfoForm({ resumeId, resume, onSaved }: PersonalInfoFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -59,6 +53,7 @@ export function PersonalInfoForm({ resumeId, resume, onSaved }: PersonalInfoForm
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isDirty },
   } = useForm<PersonalInfoInput>({
     resolver: zodResolver(personalInfoSchema),
@@ -72,18 +67,39 @@ export function PersonalInfoForm({ resumeId, resume, onSaved }: PersonalInfoForm
     },
   });
 
+  // Sync form ketika resume prop berubah dari luar (misal setelah save atau AI summary)
+  useEffect(() => {
+    reset({
+      title: resume.title ?? '',
+      full_name: resume.full_name ?? '',
+      phone: resume.phone ?? '',
+      address: resume.address ?? '',
+      summary: resume.summary ?? '',
+      template: resume.template ?? 'default',
+    });
+  }, [resume, reset]);
+
   async function onSubmit(data: PersonalInfoInput) {
     setSaveError(null);
     setSaveSuccess(false);
     setIsSaving(true);
     try {
-      const res = await apiClient.patch<{ data: Resume }>(
+      const res = await apiClient.patch<{ data: { resume: Resume } }>(
         `/api/resumes/${resumeId}`,
         data,
       );
+      const updated = res.data.data.resume;
+      // Reset form dengan data terbaru agar isDirty = false
+      reset({
+        title: updated.title ?? '',
+        full_name: updated.full_name ?? '',
+        phone: updated.phone ?? '',
+        address: updated.address ?? '',
+        summary: updated.summary ?? '',
+        template: updated.template ?? 'default',
+      });
       setSaveSuccess(true);
-      onSaved?.(res.data.data);
-      // Clear success indicator after 2s
+      onSaved?.(updated);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err: unknown) {
       const message =
@@ -97,6 +113,13 @@ export function PersonalInfoForm({ resumeId, resume, onSaved }: PersonalInfoForm
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+      <PhotoUpload
+        resumeId={resumeId}
+        currentPhotoUrl={resume.photo_url ?? null}
+        onUploaded={(url) => onSaved?.({ ...resume, photo_url: url })}
+        onDeleted={() => onSaved?.({ ...resume, photo_url: null })}
+      />
+
       <Field label="Judul Resume" error={errors.title?.message} required>
         <Input
           {...register('title')}
@@ -150,12 +173,12 @@ export function PersonalInfoForm({ resumeId, resume, onSaved }: PersonalInfoForm
 
       {saveSuccess && (
         <p className="text-sm text-green-600" role="status">
-          Tersimpan!
+          Berhasil diupdate!
         </p>
       )}
 
       <Button type="submit" disabled={isSaving || !isDirty}>
-        {isSaving ? 'Menyimpan...' : 'Simpan'}
+        {isSaving ? 'Mengupdate...' : 'Update'}
       </Button>
     </form>
   );

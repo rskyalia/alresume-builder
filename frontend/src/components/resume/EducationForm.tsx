@@ -203,10 +203,10 @@ export function EducationForm({ resumeId }: EducationFormProps) {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const res = await apiClient.get<{ data: Education[] }>(
+      const res = await apiClient.get<{ data: { education: Education[] } }>(
         `/api/resumes/${resumeId}/education`,
       );
-      setEntries(res.data.data);
+      setEntries(res.data.data.education);
     } catch {
       setLoadError('Gagal memuat data pendidikan.');
     } finally {
@@ -230,17 +230,17 @@ export function EducationForm({ resumeId }: EducationFormProps) {
 
   async function handleSave(data: EducationInput, id?: string) {
     if (id) {
-      const res = await apiClient.patch<{ data: Education }>(
+      const res = await apiClient.patch<{ data: { education: Education } }>(
         `/api/resumes/${resumeId}/education/${id}`,
         data,
       );
-      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data : e)));
+      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data.education : e)));
     } else {
-      const res = await apiClient.post<{ data: Education }>(
+      const res = await apiClient.post<{ data: { education: Education } }>(
         `/api/resumes/${resumeId}/education`,
         data,
       );
-      setEntries((prev) => [...prev, res.data.data]);
+      setEntries((prev) => [...prev, res.data.data.education]);
     }
   }
 

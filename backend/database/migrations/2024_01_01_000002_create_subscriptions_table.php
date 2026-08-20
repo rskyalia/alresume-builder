@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,8 +15,8 @@ return new class extends Migration
             $table->enum('status', ['active', 'expired', 'cancelled'])->default('active');
             $table->decimal('price', 10, 2);
             $table->string('payment_ref')->nullable();
-            $table->timestamp('started_at');
-            $table->timestamp('expires_at');
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
             $table->timestamps();
         });
     }

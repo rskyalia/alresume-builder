@@ -223,10 +223,10 @@ export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const res = await apiClient.get<{ data: Experience[] }>(
+      const res = await apiClient.get<{ data: { experience: Experience[] } }>(
         `/api/resumes/${resumeId}/experience`,
       );
-      setEntries(res.data.data);
+      setEntries(res.data.data.experience);
     } catch {
       setLoadError('Gagal memuat data pengalaman.');
     } finally {
@@ -250,17 +250,17 @@ export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
 
   async function handleSave(data: ExperienceInput, id?: string) {
     if (id) {
-      const res = await apiClient.patch<{ data: Experience }>(
+      const res = await apiClient.patch<{ data: { experience: Experience } }>(
         `/api/resumes/${resumeId}/experience/${id}`,
         data,
       );
-      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data : e)));
+      setEntries((prev) => prev.map((e) => (e.id === id ? res.data.data.experience : e)));
     } else {
-      const res = await apiClient.post<{ data: Experience }>(
+      const res = await apiClient.post<{ data: { experience: Experience } }>(
         `/api/resumes/${resumeId}/experience`,
         data,
       );
-      setEntries((prev) => [...prev, res.data.data]);
+      setEntries((prev) => [...prev, res.data.data.experience]);
     }
   }
 

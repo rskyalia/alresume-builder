@@ -41,7 +41,7 @@ export function AISummaryConfirm({
     try {
       await apiClient.post<ApiResponse<unknown>>(
         `/api/resumes/${resumeId}/ai/summary/confirm`,
-        { text },
+        { summary_text: text },
       );
       onConfirmed(text);
     } catch (err: unknown) {
