@@ -21,9 +21,10 @@ export type PersonalInfoInput = z.infer<typeof personalInfoSchema>;
 
 export const educationSchema = z
   .object({
+    education_level: z.enum(['sma', 'perguruan_tinggi']).optional().nullable(),
     institution: z.string().min(1, 'Nama institusi tidak boleh kosong').max(200),
-    degree: z.string().min(1, 'Gelar tidak boleh kosong').max(100),
-    field_of_study: z.string().min(1, 'Bidang studi tidak boleh kosong').max(100),
+    degree: z.string().max(100).optional().nullable(),
+    field_of_study: z.string().max(100).optional().nullable(),
     start_date: z.string().min(1, 'Tanggal mulai tidak boleh kosong'),
     end_date: z.string().optional().nullable(),
     gpa: z.string().max(10).optional().nullable(),
@@ -49,8 +50,12 @@ export type EducationInput = z.infer<typeof educationSchema>;
 
 export const experienceSchema = z
   .object({
-    company: z.string().min(1, 'Nama perusahaan tidak boleh kosong').max(200),
-    position: z.string().min(1, 'Posisi tidak boleh kosong').max(100),
+    experience_type: z.enum(['kerja', 'lomba', 'organisasi']).optional().nullable(),
+    competition_level: z.string().max(50).optional().nullable(),
+    competition_rank: z.string().max(100).optional().nullable(),
+    organization_scope: z.enum(['sekolah', 'kampus', 'eksternal']).optional().nullable(),
+    company: z.string().max(200).optional().nullable(),
+    position: z.string().min(1, 'Nama/posisi tidak boleh kosong').max(200),
     start_date: z.string().min(1, 'Tanggal mulai tidak boleh kosong'),
     end_date: z.string().optional().nullable(),
     is_current: z.boolean(),
@@ -102,8 +107,9 @@ export type ProjectInput = z.infer<typeof projectSchema>;
 // ---------------------------------------------------------------------------
 
 export const certificateSchema = z.object({
+  certificate_type: z.enum(['keahlian', 'prestasi', 'kegiatan']).optional().nullable(),
   name: z.string().min(1, 'Nama sertifikat tidak boleh kosong').max(200),
-  issuer: z.string().min(1, 'Nama penerbit tidak boleh kosong').max(200),
+  issuer: z.string().max(200).optional().nullable(),
   issue_date: z.string().min(1, 'Tanggal penerbitan tidak boleh kosong'),
   credential_url: z
     .string()

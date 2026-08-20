@@ -6,6 +6,7 @@
 export interface Education {
   id: string;
   resume_id: string;
+  education_level?: 'sma' | 'perguruan_tinggi' | null;
   institution: string;
   degree: string;
   field_of_study: string;
@@ -19,6 +20,10 @@ export interface Education {
 export interface Experience {
   id: string;
   resume_id: string;
+  experience_type?: 'kerja' | 'lomba' | 'organisasi' | null;
+  competition_level?: string | null;
+  competition_rank?: string | null;
+  organization_scope?: 'sekolah' | 'kampus' | 'eksternal' | null;
   company: string;
   position: string;
   start_date: string; // ISO date string: YYYY-MM-DD
@@ -52,6 +57,7 @@ export interface Project {
 export interface Certificate {
   id: string;
   resume_id: string;
+  certificate_type?: 'keahlian' | 'prestasi' | 'kegiatan' | null;
   name: string;
   issuer: string;
   issue_date: string; // ISO date string: YYYY-MM-DD

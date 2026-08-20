@@ -14,6 +14,7 @@ import apiClient from '@/lib/api-client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -55,9 +56,10 @@ function Field({
 }
 
 const EMPTY_DEFAULTS: EducationInput = {
+  education_level: null,
   institution: '',
-  degree: '',
-  field_of_study: '',
+  degree: null,
+  field_of_study: null,
   start_date: '',
   end_date: null,
   gpa: null,
@@ -80,11 +82,14 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<EducationInput>({
     resolver: zodResolver(educationSchema),
     defaultValues: EMPTY_DEFAULTS,
   });
+
+  const educationLevel = watch('education_level');
 
   // Sync form values when dialog opens/changes target
   useEffect(() => {
@@ -92,9 +97,10 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
       reset(
         initial
           ? {
+              education_level: initial.education_level ?? null,
               institution: initial.institution,
-              degree: initial.degree,
-              field_of_study: initial.field_of_study,
+              degree: initial.degree ?? null,
+              field_of_study: initial.field_of_study ?? null,
               start_date: initial.start_date,
               end_date: initial.end_date ?? null,
               gpa: initial.gpa ?? null,
@@ -114,6 +120,21 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
     }
   }
 
+  // Derived labels/placeholders based on education level
+  const isSMA = educationLevel === 'sma';
+  const isPT = educationLevel === 'perguruan_tinggi';
+
+  const institutionLabel = isSMA
+    ? 'Nama Sekolah'
+    : isPT
+      ? 'Nama Perguruan Tinggi'
+      : 'Nama Institusi';
+  const institutionPlaceholder = isSMA
+    ? 'cth. SMAN 1 Jakarta'
+    : isPT
+      ? 'cth. Universitas Indonesia'
+      : 'cth. Universitas Indonesia';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -122,30 +143,63 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <Field label="Nama Institusi" error={errors.institution?.message} required>
+          {/* Jenjang Pendidikan */}
+          <Field label="Jenjang Pendidikan" error={errors.education_level?.message} required>
+            <select
+              {...register('education_level')}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              aria-invalid={!!errors.education_level}
+            >
+              <option value="">-- Pilih Jenjang --</option>
+              <option value="sma">SMA/SMK/MA Sederajat</option>
+              <option value="perguruan_tinggi">Perguruan Tinggi</option>
+            </select>
+          </Field>
+
+          {/* Nama Institusi */}
+          <Field label={institutionLabel} error={errors.institution?.message} required>
             <Input
               {...register('institution')}
-              placeholder="cth. Universitas Indonesia"
+              placeholder={institutionPlaceholder}
               aria-invalid={!!errors.institution}
             />
           </Field>
 
-          <Field label="Gelar" error={errors.degree?.message} required>
-            <Input
-              {...register('degree')}
-              placeholder="cth. Sarjana Teknik"
-              aria-invalid={!!errors.degree}
-            />
-          </Field>
+          {/* Degree — hidden for SMA, shown as optional for SMA (program keahlian), required for PT */}
+          {!isSMA ? (
+            <Field
+              label={isPT ? 'Gelar' : 'Program Keahlian / Jurusan'}
+              error={errors.degree?.message}
+              required={isPT}
+            >
+              <Input
+                {...register('degree')}
+                placeholder={isPT ? 'cth. S1 / D3 / S2' : 'cth. IPA / Teknik Komputer'}
+                aria-invalid={!!errors.degree}
+              />
+            </Field>
+          ) : (
+            <Field label="Program Keahlian / Jurusan" error={errors.degree?.message}>
+              <Input
+                {...register('degree')}
+                placeholder="cth. IPA / Teknik Komputer"
+                aria-invalid={!!errors.degree}
+              />
+            </Field>
+          )}
 
-          <Field label="Bidang Studi" error={errors.field_of_study?.message} required>
-            <Input
-              {...register('field_of_study')}
-              placeholder="cth. Teknik Informatika"
-              aria-invalid={!!errors.field_of_study}
-            />
-          </Field>
+          {/* Field of study — only for Perguruan Tinggi */}
+          {isPT && (
+            <Field label="Program Studi" error={errors.field_of_study?.message} required>
+              <Input
+                {...register('field_of_study')}
+                placeholder="cth. Teknik Informatika"
+                aria-invalid={!!errors.field_of_study}
+              />
+            </Field>
+          )}
 
+          {/* Date range */}
           <div className="grid grid-cols-2 gap-4">
             <Field label="Tanggal Mulai" error={errors.start_date?.message} required>
               <Input
@@ -165,10 +219,14 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
             </Field>
           </div>
 
-          <Field label="IPK / GPA" error={errors.gpa?.message}>
+          {/* GPA */}
+          <Field
+            label={isPT ? 'IPK' : 'Nilai Rata-rata / UN'}
+            error={errors.gpa?.message}
+          >
             <Input
               {...register('gpa')}
-              placeholder="cth. 3.75"
+              placeholder={isPT ? 'cth. 3.75' : 'cth. 85.5'}
               aria-invalid={!!errors.gpa}
             />
           </Field>
@@ -294,9 +352,17 @@ export function EducationForm({ resumeId }: EducationFormProps) {
               className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4"
             >
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-sm truncate">{entry.institution}</p>
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  <p className="font-medium text-sm truncate">{entry.institution}</p>
+                  {entry.education_level === 'sma' && (
+                    <Badge variant="secondary">SMA/SMK</Badge>
+                  )}
+                  {entry.education_level === 'perguruan_tinggi' && (
+                    <Badge>Perguruan Tinggi</Badge>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  {entry.degree} — {entry.field_of_study}
+                  {[entry.degree, entry.field_of_study].filter(Boolean).join(' — ')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {entry.start_date} – {entry.end_date ?? 'Sekarang'}

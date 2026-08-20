@@ -11,6 +11,7 @@ import apiClient from '@/lib/api-client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -53,8 +54,9 @@ function Field({
 }
 
 const EMPTY_DEFAULTS: CertificateInput = {
+  certificate_type: 'keahlian',
   name: '',
-  issuer: '',
+  issuer: null,
   issue_date: '',
   credential_url: '',
 };
@@ -76,19 +78,23 @@ function CertificateModal({ open, onOpenChange, initial, onSave }: CertificateMo
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<CertificateInput>({
     resolver: zodResolver(certificateSchema),
     defaultValues: EMPTY_DEFAULTS,
   });
 
+  const certType = watch('certificate_type');
+
   useEffect(() => {
     if (open) {
       reset(
         initial
           ? {
+              certificate_type: initial.certificate_type ?? 'keahlian',
               name: initial.name,
-              issuer: initial.issuer,
+              issuer: initial.issuer ?? null,
               issue_date: initial.issue_date,
               credential_url: initial.credential_url ?? '',
             }
@@ -112,6 +118,21 @@ function CertificateModal({ open, onOpenChange, initial, onSave }: CertificateMo
     }
   }
 
+  // Derive issuer label/placeholder by type
+  const issuerLabel =
+    certType === 'prestasi'
+      ? 'Penyelenggara'
+      : certType === 'kegiatan'
+        ? 'Penyelenggara Kegiatan'
+        : 'Lembaga Penerbit';
+
+  const issuerPlaceholder =
+    certType === 'prestasi'
+      ? 'cth. Kemendikbud, LKTI 2024'
+      : certType === 'kegiatan'
+        ? 'cth. Universitas Indonesia'
+        : 'cth. Cisco, Microsoft, BNSP';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -120,6 +141,19 @@ function CertificateModal({ open, onOpenChange, initial, onSave }: CertificateMo
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          {/* Jenis Sertifikat */}
+          <Field label="Jenis Sertifikat" error={errors.certificate_type?.message} required>
+            <select
+              {...register('certificate_type')}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              aria-invalid={!!errors.certificate_type}
+            >
+              <option value="keahlian">Sertifikat Keahlian / Kompetensi</option>
+              <option value="prestasi">Sertifikat Prestasi / Penghargaan</option>
+              <option value="kegiatan">Sertifikat Kegiatan / Partisipasi</option>
+            </select>
+          </Field>
+
           <Field label="Nama Sertifikat" error={errors.name?.message} required>
             <Input
               {...register('name')}
@@ -128,10 +162,10 @@ function CertificateModal({ open, onOpenChange, initial, onSave }: CertificateMo
             />
           </Field>
 
-          <Field label="Penerbit (Issuer)" error={errors.issuer?.message} required>
+          <Field label={issuerLabel} error={errors.issuer?.message}>
             <Input
               {...register('issuer')}
-              placeholder="cth. Amazon Web Services"
+              placeholder={issuerPlaceholder}
               aria-invalid={!!errors.issuer}
             />
           </Field>
@@ -234,6 +268,25 @@ export function CertificatesForm({ resumeId }: CertificatesFormProps) {
     }
   }
 
+  function getCertTypeBadge(entry: Certificate) {
+    const type = entry.certificate_type ?? 'keahlian';
+    if (type === 'prestasi') {
+      return (
+        <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
+          Prestasi
+        </Badge>
+      );
+    }
+    if (type === 'kegiatan') {
+      return (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">
+          Kegiatan
+        </Badge>
+      );
+    }
+    return <Badge variant="secondary">Keahlian</Badge>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -274,8 +327,9 @@ export function CertificatesForm({ resumeId }: CertificatesFormProps) {
               className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                   <p className="font-medium text-sm">{entry.name}</p>
+                  {getCertTypeBadge(entry)}
                   {entry.credential_url && (
                     <a
                       href={entry.credential_url}
@@ -289,7 +343,9 @@ export function CertificatesForm({ resumeId }: CertificatesFormProps) {
                     </a>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">{entry.issuer}</p>
+                {entry.issuer && (
+                  <p className="text-sm text-muted-foreground">{entry.issuer}</p>
+                )}
                 <p className="text-xs text-muted-foreground mt-0.5">{entry.issue_date}</p>
 
                 <CertificateFileUpload

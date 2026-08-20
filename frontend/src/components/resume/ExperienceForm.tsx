@@ -15,6 +15,7 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ import {
 
 export interface ExperienceFormProps {
   resumeId: string;
-  /** Called when the user clicks "AI Rewrite" on an entry. */
+  /** Called when the user clicks "AI Rewrite" on a kerja entry. */
   onAIRewrite?: (experience: Experience) => void;
 }
 
@@ -57,8 +58,20 @@ function Field({
   );
 }
 
+const COMPETITION_LEVELS = [
+  'Sekolah',
+  'Kabupaten/Kota',
+  'Provinsi',
+  'Nasional',
+  'Internasional',
+] as const;
+
 const EMPTY_DEFAULTS: ExperienceInput = {
-  company: '',
+  experience_type: 'kerja',
+  competition_level: null,
+  competition_rank: null,
+  organization_scope: null,
+  company: null,
   position: '',
   start_date: '',
   end_date: null,
@@ -91,7 +104,12 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
     defaultValues: EMPTY_DEFAULTS,
   });
 
+  const expType = watch('experience_type');
   const isCurrent = watch('is_current');
+
+  const isKerja = expType === 'kerja' || !expType;
+  const isLomba = expType === 'lomba';
+  const isOrganisasi = expType === 'organisasi';
 
   // Sync form values when dialog opens/changes target
   useEffect(() => {
@@ -99,7 +117,11 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
       reset(
         initial
           ? {
-              company: initial.company,
+              experience_type: initial.experience_type ?? 'kerja',
+              competition_level: initial.competition_level ?? null,
+              competition_rank: initial.competition_rank ?? null,
+              organization_scope: initial.organization_scope ?? null,
+              company: initial.company ?? null,
               position: initial.position,
               start_date: initial.start_date,
               end_date: initial.end_date ?? null,
@@ -117,6 +139,22 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
       setValue('end_date', null);
     }
   }, [isCurrent, setValue]);
+
+  // Clear type-specific fields when switching experience_type
+  useEffect(() => {
+    if (isKerja || isOrganisasi) {
+      setValue('competition_level', null);
+      setValue('competition_rank', null);
+    }
+    if (isKerja || isLomba) {
+      setValue('organization_scope', null);
+    }
+    if (isLomba) {
+      setValue('is_current', false);
+      setValue('end_date', null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expType, setValue]);
 
   async function onSubmit(data: ExperienceInput) {
     setSubmitting(true);
@@ -136,58 +174,197 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <Field label="Nama Perusahaan" error={errors.company?.message} required>
-            <Input
-              {...register('company')}
-              placeholder="cth. PT. Tokopedia"
-              aria-invalid={!!errors.company}
-            />
+          {/* Jenis Pengalaman */}
+          <Field label="Jenis Pengalaman" error={errors.experience_type?.message} required>
+            <select
+              {...register('experience_type')}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              aria-invalid={!!errors.experience_type}
+            >
+              <option value="kerja">Pengalaman Kerja</option>
+              <option value="lomba">Lomba / Kompetisi</option>
+              <option value="organisasi">Organisasi</option>
+            </select>
           </Field>
 
-          <Field label="Posisi / Jabatan" error={errors.position?.message} required>
-            <Input
-              {...register('position')}
-              placeholder="cth. Software Engineer"
-              aria-invalid={!!errors.position}
-            />
-          </Field>
+          {/* ── KERJA fields ── */}
+          {isKerja && (
+            <>
+              <Field label="Nama Perusahaan / Instansi" error={errors.company?.message} required>
+                <Input
+                  {...register('company')}
+                  placeholder="cth. PT. Tokopedia"
+                  aria-invalid={!!errors.company}
+                />
+              </Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Tanggal Mulai" error={errors.start_date?.message} required>
-              <Input
-                {...register('start_date')}
-                type="date"
-                aria-invalid={!!errors.start_date}
-              />
-            </Field>
+              <Field label="Posisi / Jabatan" error={errors.position?.message} required>
+                <Input
+                  {...register('position')}
+                  placeholder="cth. Software Engineer"
+                  aria-invalid={!!errors.position}
+                />
+              </Field>
 
-            <Field label="Tanggal Selesai" error={errors.end_date?.message}>
-              <Input
-                {...register('end_date')}
-                type="date"
-                disabled={isCurrent}
-                aria-invalid={!!errors.end_date}
-              />
-              {isCurrent && (
-                <p className="text-xs text-muted-foreground">Dinonaktifkan — masih berlangsung</p>
-              )}
-            </Field>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Tanggal Mulai" error={errors.start_date?.message} required>
+                  <Input
+                    {...register('start_date')}
+                    type="date"
+                    aria-invalid={!!errors.start_date}
+                  />
+                </Field>
+                <Field label="Tanggal Selesai" error={errors.end_date?.message}>
+                  <Input
+                    {...register('end_date')}
+                    type="date"
+                    disabled={isCurrent}
+                    aria-invalid={!!errors.end_date}
+                  />
+                  {isCurrent && (
+                    <p className="text-xs text-muted-foreground">Dinonaktifkan — masih berlangsung</p>
+                  )}
+                </Field>
+              </div>
 
-          {/* is_current toggle */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              {...register('is_current')}
-              className="h-4 w-4 rounded border-input accent-primary"
-            />
-            <span className="text-sm">Masih bekerja di sini</span>
-          </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...register('is_current')}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <span className="text-sm">Masih bekerja di sini</span>
+              </label>
+            </>
+          )}
 
-          <Field label="Deskripsi Pekerjaan" error={errors.description?.message}>
+          {/* ── LOMBA fields ── */}
+          {isLomba && (
+            <>
+              <Field label="Nama Lomba / Kompetisi" error={errors.position?.message} required>
+                <Input
+                  {...register('position')}
+                  placeholder="cth. Olimpiade Sains Nasional"
+                  aria-invalid={!!errors.position}
+                />
+              </Field>
+
+              <Field label="Penyelenggara" error={errors.company?.message}>
+                <Input
+                  {...register('company')}
+                  placeholder="cth. Kemendikbud"
+                  aria-invalid={!!errors.company}
+                />
+              </Field>
+
+              <Field label="Tingkat Lomba" error={errors.competition_level?.message} required>
+                <select
+                  {...register('competition_level')}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-invalid={!!errors.competition_level}
+                >
+                  <option value="">-- Pilih Tingkat --</option>
+                  {COMPETITION_LEVELS.map((lvl) => (
+                    <option key={lvl} value={lvl}>
+                      {lvl}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Juara / Hasil" error={errors.competition_rank?.message} required>
+                <Input
+                  {...register('competition_rank')}
+                  placeholder="cth. Juara 1, Finalis, Best Paper, Medali Emas"
+                  aria-invalid={!!errors.competition_rank}
+                />
+              </Field>
+
+              <Field label="Tanggal Pelaksanaan" error={errors.start_date?.message} required>
+                <Input
+                  {...register('start_date')}
+                  type="date"
+                  aria-invalid={!!errors.start_date}
+                />
+              </Field>
+            </>
+          )}
+
+          {/* ── ORGANISASI fields ── */}
+          {isOrganisasi && (
+            <>
+              <Field label="Nama Organisasi" error={errors.company?.message} required>
+                <Input
+                  {...register('company')}
+                  placeholder="cth. BEM Fakultas, OSIS, Karang Taruna"
+                  aria-invalid={!!errors.company}
+                />
+              </Field>
+
+              <Field label="Jabatan / Peran" error={errors.position?.message} required>
+                <Input
+                  {...register('position')}
+                  placeholder="cth. Ketua, Sekretaris, Anggota"
+                  aria-invalid={!!errors.position}
+                />
+              </Field>
+
+              <Field label="Lingkup Organisasi" error={errors.organization_scope?.message} required>
+                <select
+                  {...register('organization_scope')}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-invalid={!!errors.organization_scope}
+                >
+                  <option value="">-- Pilih Lingkup --</option>
+                  <option value="sekolah">Sekolah</option>
+                  <option value="kampus">Kampus / Universitas</option>
+                  <option value="eksternal">Eksternal / Masyarakat</option>
+                </select>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Tanggal Mulai" error={errors.start_date?.message} required>
+                  <Input
+                    {...register('start_date')}
+                    type="date"
+                    aria-invalid={!!errors.start_date}
+                  />
+                </Field>
+                <Field label="Tanggal Selesai" error={errors.end_date?.message}>
+                  <Input
+                    {...register('end_date')}
+                    type="date"
+                    disabled={isCurrent}
+                    aria-invalid={!!errors.end_date}
+                  />
+                  {isCurrent && (
+                    <p className="text-xs text-muted-foreground">Dinonaktifkan — masih berlangsung</p>
+                  )}
+                </Field>
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...register('is_current')}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <span className="text-sm">Masih aktif di organisasi ini</span>
+              </label>
+            </>
+          )}
+
+          {/* Description — shown for all types */}
+          <Field label="Deskripsi" error={errors.description?.message}>
             <Textarea
               {...register('description')}
-              placeholder="Jelaskan tanggung jawab dan pencapaian kamu..."
+              placeholder={
+                isLomba
+                  ? 'Ceritakan proses lomba atau pencapaian kamu...'
+                  : isOrganisasi
+                    ? 'Jelaskan peran dan kontribusi kamu...'
+                    : 'Jelaskan tanggung jawab dan pencapaian kamu...'
+              }
               className="min-h-25 resize-y"
               aria-invalid={!!errors.description}
             />
@@ -274,10 +451,29 @@ export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
     }
   }
 
+  function getTypeBadge(entry: Experience) {
+    const type = entry.experience_type ?? 'kerja';
+    if (type === 'lomba') {
+      return (
+        <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
+          Lomba
+        </Badge>
+      );
+    }
+    if (type === 'organisasi') {
+      return (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">
+          Organisasi
+        </Badge>
+      );
+    }
+    return <Badge variant="secondary">Kerja</Badge>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-foreground">Pengalaman Kerja</h3>
+        <h3 className="text-base font-semibold text-foreground">Pengalaman</h3>
         <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
           Tambah
@@ -308,60 +504,99 @@ export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
 
       {entries.length > 0 && (
         <ul className="space-y-3" role="list">
-          {entries.map((entry) => (
-            <li
-              key={entry.id}
-              className="rounded-lg border bg-card p-4 space-y-2"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate">{entry.position}</p>
-                  <p className="text-sm text-muted-foreground">{entry.company}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {entry.start_date} – {entry.is_current ? 'Sekarang' : (entry.end_date ?? '—')}
+          {entries.map((entry) => {
+            const type = entry.experience_type ?? 'kerja';
+            return (
+              <li
+                key={entry.id}
+                className="rounded-lg border bg-card p-4 space-y-2"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <p className="font-medium text-sm truncate">{entry.position}</p>
+                      {getTypeBadge(entry)}
+                    </div>
+
+                    {type === 'lomba' ? (
+                      <div className="space-y-0.5">
+                        {entry.company && (
+                          <p className="text-sm text-muted-foreground">{entry.company}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {entry.competition_level && (
+                            <span className="mr-2">Tingkat: {entry.competition_level}</span>
+                          )}
+                          {entry.competition_rank && (
+                            <span>· {entry.competition_rank}</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{entry.start_date}</p>
+                      </div>
+                    ) : type === 'organisasi' ? (
+                      <div className="space-y-0.5">
+                        <p className="text-sm text-muted-foreground">{entry.company}</p>
+                        {entry.organization_scope && (
+                          <p className="text-xs text-muted-foreground capitalize">
+                            Lingkup: {entry.organization_scope === 'kampus' ? 'Kampus / Universitas' : entry.organization_scope === 'eksternal' ? 'Eksternal / Masyarakat' : 'Sekolah'}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {entry.start_date} – {entry.is_current ? 'Sekarang' : (entry.end_date ?? '—')}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5">
+                        <p className="text-sm text-muted-foreground">{entry.company}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {entry.start_date} – {entry.is_current ? 'Sekarang' : (entry.end_date ?? '—')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEdit(entry)}
+                      aria-label={`Edit pengalaman ${entry.position}`}
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(entry.id)}
+                      disabled={deletingId === entry.id}
+                      aria-label={`Hapus pengalaman ${entry.position}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                </div>
+
+                {entry.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-line">
+                    {entry.description}
                   </p>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEdit(entry)}
-                    aria-label={`Edit pengalaman di ${entry.company}`}
-                  >
-                    <Pencil className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(entry.id)}
-                    disabled={deletingId === entry.id}
-                    aria-label={`Hapus pengalaman di ${entry.company}`}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </div>
-              </div>
+                )}
 
-              {entry.description && (
-                <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-line">
-                  {entry.description}
-                </p>
-              )}
-
-              {onAIRewrite && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onAIRewrite(entry)}
-                  className="text-xs"
-                >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                  AI Rewrite
-                </Button>
-              )}
-            </li>
-          ))}
+                {/* AI Rewrite only for kerja type */}
+                {onAIRewrite && type === 'kerja' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAIRewrite(entry)}
+                    className="text-xs"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                    AI Rewrite
+                  </Button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 

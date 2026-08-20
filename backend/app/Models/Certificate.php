@@ -13,6 +13,7 @@ class Certificate extends Model
 
     protected $fillable = [
         'resume_id',
+        'certificate_type',
         'name',
         'issuer',
         'issue_date',

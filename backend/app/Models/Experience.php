@@ -14,6 +14,10 @@ class Experience extends Model
 
     protected $fillable = [
         'resume_id',
+        'experience_type',
+        'competition_level',
+        'competition_rank',
+        'organization_scope',
         'company',
         'position',
         'start_date',
