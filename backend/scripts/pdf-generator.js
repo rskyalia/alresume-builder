@@ -1,63 +1,62 @@
-/**
- * PDF Generator Script
- *
- * Converts an HTML file to PDF using Puppeteer (headless Chrome).
- * Called as a Node.js subprocess by Laravel's PDFService.
- *
- * Usage:
- *   node scripts/pdf-generator.js --input=/path/to/file.html --output=/path/to/output.pdf
- *
- * Arguments:
- *   --input   Absolute path to the input HTML file (file:// protocol will be used)
- *   --output  Absolute path where the output PDF will be written
- */
-
 import puppeteer from 'puppeteer';
 import { createRequire } from 'module';
+import { existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 
-// Use createRequire to load minimist (CommonJS module) in ESM context
 const require = createRequire(import.meta.url);
 const minimist = require('minimist');
-
 const args = minimist(process.argv.slice(2));
 
 if (!args.input || !args.output) {
     console.error('Error: --input and --output arguments are required.');
-    console.error('Usage: node scripts/pdf-generator.js --input=/path/to/file.html --output=/path/to/output.pdf');
     process.exit(1);
+}
+
+// Find Chrome executable
+function findChrome() {
+    const candidates = [
+        join(homedir(), '.cache/puppeteer/chrome/win64-152.0.7977.42/chrome-win64/chrome.exe'),
+        join(homedir(), '.cache/puppeteer/chrome/win64-131.0.6778.264/chrome-win64/chrome.exe'),
+        'C:/Program Files/Google/Chrome/Application/chrome.exe',
+        'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+    ];
+    for (const p of candidates) {
+        if (existsSync(p)) return p;
+    }
+    return null;
 }
 
 (async () => {
     let browser;
     try {
-        browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required for Railway/Docker environments
-        });
+        const chromePath = findChrome();
+        const launchOptions = {
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+            headless: true,
+        };
+        if (chromePath) {
+            launchOptions.executablePath = chromePath;
+            console.log('Using Chrome:', chromePath);
+        }
 
+        browser = await puppeteer.launch(launchOptions);
         const page = await browser.newPage();
 
-        // Use file:// protocol to load local HTML file
-        await page.goto(`file://${args.input}`, { waitUntil: 'networkidle0' });
+        await page.goto(`file:///${args.input.replace(/\\/g, '/')}`, { waitUntil: 'networkidle0', timeout: 30000 });
 
         await page.pdf({
             path: args.output,
             format: 'A4',
             printBackground: true,
-            margin: {
-                top: '20mm',
-                bottom: '20mm',
-                left: '15mm',
-                right: '15mm',
-            },
+            margin: { top: '15mm', bottom: '15mm', left: '12mm', right: '12mm' },
         });
 
-        console.log(`PDF generated successfully: ${args.output}`);
+        console.log('PDF generated: ' + args.output);
     } catch (error) {
-        console.error('Error generating PDF:', error.message);
+        console.error('Error:', error.message);
         process.exit(1);
     } finally {
-        if (browser) {
-            await browser.close();
-        }
+        if (browser) await browser.close();
     }
 })();
