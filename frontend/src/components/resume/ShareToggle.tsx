@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Globe, Lock, Copy, Check, Loader2 } from 'lucide-react';
 
 import apiClient from '@/lib/api-client';
+import { copyToClipboard } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -69,12 +70,10 @@ export function ShareToggle({
 
   async function handleCopy() {
     if (!publicUrl) return;
-    try {
-      await navigator.clipboard.writeText(publicUrl);
-      setCopied(true);
+    const succeeded = await copyToClipboard(publicUrl);
+    setCopied(succeeded);
+    if (succeeded) {
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback: select text manually if clipboard API unavailable
     }
   }
 

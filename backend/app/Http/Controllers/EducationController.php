@@ -14,7 +14,7 @@ class EducationController extends Controller
 
     public function index(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('view', $resume);
 
         return response()->json([
             'success' => true,
@@ -25,7 +25,7 @@ class EducationController extends Controller
 
     public function store(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('update', $resume);
 
         $validated = $request->validate([
             'education_level' => ['nullable', 'string', 'in:sma,perguruan_tinggi'],
@@ -56,7 +56,7 @@ class EducationController extends Controller
 
     public function update(Request $request, Resume $resume, Education $education): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $education]);
 
         $validated = $request->validate([
             'education_level' => ['nullable', 'string', 'in:sma,perguruan_tinggi'],
@@ -83,7 +83,7 @@ class EducationController extends Controller
 
     public function destroy(Request $request, Resume $resume, Education $education): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $education]);
 
         $education->delete();
 

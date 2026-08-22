@@ -12,7 +12,8 @@ class GeminiProvider
         $model  = 'gemini-3.6-flash';
 
         $client = new Client([
-            'verify'  => 'C:\php8.5\cacert.pem',
+            // null/false → pakai CA bundle default sistem; string → path CA bundle kustom
+            'verify'  => config('services.ai.ca_bundle') ?: true,
             'timeout' => 30,
         ]);
 

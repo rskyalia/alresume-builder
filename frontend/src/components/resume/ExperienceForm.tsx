@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -24,16 +25,31 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { useAIJob } from '@/hooks/useAIJob';
+import { AIJobStatus } from '@/components/ai/AIJobStatus';
+import { ExperienceRewriteConfirm } from '@/components/ai/ExperienceRewriteConfirm';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface ExperienceFormProps {
   resumeId: string;
-  /** Called when the user clicks "AI Rewrite" on a kerja entry. */
-  onAIRewrite?: (experience: Experience) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function extractApiErrorMessage(err: unknown, fallback: string): string {
+  const response = (
+    typeof err === 'object' && err !== null && 'response' in err
+      ? (err as { response?: unknown }).response
+      : undefined
+  );
+  const message = (
+    typeof response === 'object' && response !== null && 'data' in response
+      ? (response as { data?: { message?: unknown } }).data?.message
+      : undefined
+  );
+  return typeof message === 'string' && message.length > 0 ? message : fallback;
+}
 
 function Field({
   label,
@@ -388,13 +404,26 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
+export function ExperienceForm({ resumeId }: ExperienceFormProps) {
   const [entries, setEntries] = useState<Experience[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Experience | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // ── AI Rewrite state ──
+  const {
+    status: rewriteStatus,
+    result: rewriteResult,
+    error: rewriteError,
+    dispatch: dispatchRewriteJob,
+    reset: resetRewriteJob,
+  } = useAIJob();
+  const [rewriteTargetId, setRewriteTargetId] = useState<string | null>(null);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const rewriteInFlight =
+    rewriteStatus === 'pending' || rewriteStatus === 'processing';
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -451,6 +480,44 @@ export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
     }
   }
 
+  // ── AI Rewrite handlers ──
+
+  async function startAIRewrite(entry: Experience) {
+    setDispatchError(null);
+    setRewriteTargetId(entry.id);
+    try {
+      await dispatchRewriteJob(
+        `/api/resumes/${resumeId}/experiences/${entry.id}/ai/rewrite`,
+      );
+    } catch (err: unknown) {
+      resetRewriteJob();
+      setRewriteTargetId(null);
+      setDispatchError(
+        extractApiErrorMessage(
+          err,
+          'Gagal memulai AI Rewrite. Periksa kuota harian Anda dan coba lagi.',
+        ),
+      );
+    }
+  }
+
+  function handleRewriteConfirmed(text: string) {
+    const id = rewriteTargetId;
+    if (id) {
+      setEntries((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, description: text } : e)),
+      );
+    }
+    resetRewriteJob();
+    setRewriteTargetId(null);
+  }
+
+  function handleRewriteCancel() {
+    resetRewriteJob();
+    setRewriteTargetId(null);
+    setDispatchError(null);
+  }
+
   function getTypeBadge(entry: Experience) {
     const type = entry.experience_type ?? 'kerja';
     if (type === 'lomba') {
@@ -491,6 +558,12 @@ export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
             Coba lagi
           </Button>
         </div>
+      )}
+
+      {dispatchError && (
+        <Alert variant="destructive">
+          <AlertDescription>{dispatchError}</AlertDescription>
+        </Alert>
       )}
 
       {!isLoading && !loadError && entries.length === 0 && (
@@ -582,17 +655,46 @@ export function ExperienceForm({ resumeId, onAIRewrite }: ExperienceFormProps) {
                   </p>
                 )}
 
-                {/* AI Rewrite only for kerja type */}
-                {onAIRewrite && type === 'kerja' && (
+                {/* AI Rewrite only for kerja type with a description */}
+                {type === 'kerja' && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onAIRewrite(entry)}
+                    onClick={() => startAIRewrite(entry)}
+                    disabled={!entry.description || rewriteTargetId !== null}
                     className="text-xs"
                   >
                     <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                    AI Rewrite
+                    {rewriteTargetId === entry.id && (rewriteInFlight || rewriteStatus === 'completed')
+                      ? 'Menulis Ulang...'
+                      : 'AI Rewrite'}
                   </Button>
+                )}
+
+                {/* Inline AI Rewrite flow for the targeted entry */}
+                {rewriteTargetId === entry.id && (
+                  <div className="space-y-3 border-t pt-3">
+                    {rewriteInFlight && <AIJobStatus status={rewriteStatus} />}
+
+                    {rewriteStatus === 'failed' && (
+                      <>
+                        <AIJobStatus status={rewriteStatus} error={rewriteError} />
+                        <Button variant="outline" size="sm" onClick={handleRewriteCancel}>
+                          Tutup
+                        </Button>
+                      </>
+                    )}
+
+                    {rewriteStatus === 'completed' && rewriteResult !== null && (
+                      <ExperienceRewriteConfirm
+                        resumeId={resumeId}
+                        experienceId={entry.id}
+                        result={rewriteResult}
+                        onConfirmed={handleRewriteConfirmed}
+                        onCancel={handleRewriteCancel}
+                      />
+                    )}
+                  </div>
                 )}
               </li>
             );

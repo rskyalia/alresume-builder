@@ -80,9 +80,14 @@ export function ATSScoreCard({ result }: ATSScoreCardProps) {
         : 'Perlu Perhatian';
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-in-up space-y-6">
       {/* Score section */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
+      <div className="relative overflow-hidden rounded-xl border bg-card p-6 shadow-sm">
+        {/* Decorative gradient accent */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gradient-to-tr from-violet-500/10 via-fuchsia-500/10 to-sky-500/10 blur-2xl"
+        />
         <p className="mb-1 text-sm font-medium text-muted-foreground">Skor ATS</p>
         <div className="flex items-end gap-3">
           <span className={`text-6xl font-bold leading-none ${scoreColor}`}>
@@ -98,20 +103,30 @@ export function ATSScoreCard({ result }: ATSScoreCardProps) {
             className={`h-3 ${barColor}`}
             aria-label={`Skor ATS: ${clampedScore} dari 100`}
           />
+          <p className="mt-2 flex justify-between text-xs text-muted-foreground">
+            <span>0</span>
+            <span>50</span>
+            <span>100</span>
+          </p>
         </div>
       </div>
 
       {/* Recommendations */}
       {recommendations.length > 0 && (
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <h3 className="mb-3 text-sm font-semibold text-foreground">
+        <div
+          className="animate-fade-in-up rounded-xl border bg-card p-6 shadow-sm"
+          style={{ animationDelay: '120ms' }}
+        >
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
             Rekomendasi Perbaikan
           </h3>
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {recommendations.map((rec, index) => (
-              <li key={index} className="flex gap-2 text-sm text-muted-foreground">
-                <span className="mt-0.5 flex-shrink-0 text-primary">•</span>
-                <span>{rec}</span>
+              <li key={index} className="flex gap-3 text-sm text-muted-foreground">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  {index + 1}
+                </span>
+                <span className="leading-relaxed">{rec}</span>
               </li>
             ))}
           </ul>

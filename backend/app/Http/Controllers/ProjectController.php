@@ -20,7 +20,7 @@ class ProjectController extends Controller
      */
     public function index(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('view', $resume);
 
         $projects = $resume->projects;
 
@@ -46,7 +46,7 @@ class ProjectController extends Controller
      */
     public function store(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('update', $resume);
 
         $validated = $request->validate([
             'name'        => ['required', 'string', 'max:255'],
@@ -81,7 +81,7 @@ class ProjectController extends Controller
      */
     public function update(Request $request, Resume $resume, Project $project): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $project]);
 
         $validated = $request->validate([
             'name'        => ['required', 'string', 'max:255'],
@@ -112,7 +112,7 @@ class ProjectController extends Controller
      */
     public function destroy(Request $request, Resume $resume, Project $project): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $project]);
 
         $project->delete();
 

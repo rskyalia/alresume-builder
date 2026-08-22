@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAIJob } from '@/hooks/useAIJob';
 import { AIJobStatus } from '@/components/ai/AIJobStatus';
+import { copyToClipboard } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +20,18 @@ const coverLetterFormSchema = z.object({
 });
 
 type CoverLetterFormValues = z.infer<typeof coverLetterFormSchema>;
+
+/**
+ * Pesan progres khusus pembuatan cover letter.
+ * "Sedang memproses..." harus tetap menjadi pesan pertama (dipakai test).
+ */
+const COVER_LETTER_LOADING_MESSAGES = [
+  'Sedang memproses...',
+  'Membaca ringkasan dan pengalaman Anda...',
+  'Menyesuaikan surat dengan perusahaan dan posisi...',
+  'Menulis paragraf pembuka yang menarik...',
+  'Memfinalisikan cover letter Anda...',
+];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +53,9 @@ export interface CoverLetterEditorProps {
 export function CoverLetterEditor({ resumeId }: CoverLetterEditorProps) {
   const { status, result, error, dispatch, reset } = useAIJob();
   const [editedResult, setEditedResult] = useState<string>('');
-  const [copySuccess, setCopySuccess] = useState(false);
+  // null = belum pernah menyalin, true/false = hasil percobaan terakhir
+  const [copySuccess, setCopySuccess] = useState<boolean | null>(null);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const {
     register,
@@ -53,12 +68,21 @@ export function CoverLetterEditor({ resumeId }: CoverLetterEditorProps) {
   const onSubmit = async (values: CoverLetterFormValues) => {
     reset();
     setEditedResult('');
-    setCopySuccess(false);
+    setCopySuccess(null);
+    setDispatchError(null);
 
-    await dispatch(`/api/resumes/${resumeId}/ai/cover-letter`, {
-      company_name: values.company_name,
-      position_name: values.position_name,
-    });
+    try {
+      await dispatch(`/api/resumes/${resumeId}/ai/cover-letter`, {
+        company_name: values.company_name,
+        position_name: values.position_name,
+      });
+    } catch {
+      // POST pemicu gagal — reset agar tidak berhenti di spinner.
+      reset();
+      setDispatchError(
+        'Gagal memulai pembuatan cover letter. Periksa kuota harian Anda lalu coba lagi.',
+      );
+    }
   };
 
   // Sync editedResult when job completes
@@ -73,12 +97,10 @@ export function CoverLetterEditor({ resumeId }: CoverLetterEditorProps) {
 
   const handleCopy = async () => {
     if (!displayResult) return;
-    try {
-      await navigator.clipboard.writeText(displayResult);
-      setCopySuccess(true);
+    const succeeded = await copyToClipboard(displayResult);
+    setCopySuccess(succeeded);
+    if (succeeded) {
       setTimeout(() => setCopySuccess(false), 2000);
-    } catch {
-      // clipboard API not available — silently ignore
     }
   };
 
@@ -119,6 +141,11 @@ export function CoverLetterEditor({ resumeId }: CoverLetterEditorProps) {
         <Button
           type="submit"
           disabled={isSubmitting || status === 'pending' || status === 'processing'}
+          className={
+            status === 'pending' || status === 'processing'
+              ? ''
+              : 'gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-fuchsia-500/20 transition-all hover:opacity-90 hover:shadow-lg hover:shadow-fuchsia-500/30'
+          }
         >
           {status === 'pending' || status === 'processing'
             ? 'Sedang Membuat...'
@@ -128,12 +155,22 @@ export function CoverLetterEditor({ resumeId }: CoverLetterEditorProps) {
 
       {/* Job status (spinner / error) — hide completed here, we show custom result below */}
       {(status === 'pending' || status === 'processing' || status === 'failed') && (
-        <AIJobStatus status={status} error={error} />
+        <AIJobStatus
+          status={status}
+          error={error}
+          loadingMessages={COVER_LETTER_LOADING_MESSAGES}
+        />
+      )}
+
+      {dispatchError && (
+        <Alert variant="destructive">
+          <AlertDescription>{dispatchError}</AlertDescription>
+        </Alert>
       )}
 
       {/* Result editor */}
       {status === 'completed' && displayResult && (
-        <div className="space-y-3">
+        <div className="animate-fade-in-up space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">Hasil Cover Letter</p>
             <Button
@@ -158,6 +195,14 @@ export function CoverLetterEditor({ resumeId }: CoverLetterEditorProps) {
             <Alert>
               <AlertDescription>
                 Teks berhasil disalin ke clipboard.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {copySuccess === false && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Gagal menyalin. Silakan salin manual dari teks di atas.
               </AlertDescription>
             </Alert>
           )}

@@ -54,7 +54,7 @@ export function AISummaryConfirm({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="animate-fade-in-up space-y-4">
       <div>
         <p className="mb-2 text-sm font-medium text-foreground">
           Ringkasan yang dihasilkan AI

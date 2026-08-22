@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Resume;
 use App\Models\Skill;
-use Illuminate\Http\JsonResponse;use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SkillController extends Controller
 {
@@ -19,7 +20,7 @@ class SkillController extends Controller
      */
     public function index(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('view', $resume);
 
         $skills = $resume->skills;
 
@@ -45,7 +46,7 @@ class SkillController extends Controller
      */
     public function store(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('update', $resume);
 
         $validated = $request->validate([
             'name'  => ['required', 'string', 'max:255'],
@@ -78,7 +79,7 @@ class SkillController extends Controller
      */
     public function update(Request $request, Resume $resume, Skill $skill): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $skill]);
 
         $validated = $request->validate([
             'name'  => ['required', 'string', 'max:255'],
@@ -107,7 +108,7 @@ class SkillController extends Controller
      */
     public function destroy(Request $request, Resume $resume, Skill $skill): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $skill]);
 
         $skill->delete();
 

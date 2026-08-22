@@ -11,7 +11,7 @@ class CertificateController extends Controller
 {
     public function index(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('view', $resume);
 
         return response()->json([
             'success' => true,
@@ -22,7 +22,7 @@ class CertificateController extends Controller
 
     public function store(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('update', $resume);
 
         $validated = $request->validate([
             'certificate_type' => ['nullable', 'string', 'in:keahlian,prestasi,kegiatan'],
@@ -46,7 +46,7 @@ class CertificateController extends Controller
 
     public function update(Request $request, Resume $resume, Certificate $certificate): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $certificate]);
 
         $validated = $request->validate([
             'certificate_type' => ['nullable', 'string', 'in:keahlian,prestasi,kegiatan'],
@@ -67,7 +67,7 @@ class CertificateController extends Controller
 
     public function destroy(Request $request, Resume $resume, Certificate $certificate): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403, 'Akses ditolak.');
+        $this->authorize('manageSection', [$resume, $certificate]);
 
         $certificate->delete();
 

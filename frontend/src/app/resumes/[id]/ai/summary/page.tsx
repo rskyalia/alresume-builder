@@ -12,6 +12,18 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 /**
+ * Pesan progres khusus generate summary.
+ * "Sedang memproses..." harus tetap menjadi pesan pertama (dipakai test).
+ */
+const SUMMARY_LOADING_MESSAGES = [
+  'Sedang memproses...',
+  'Menganalisis data resume Anda...',
+  'Mengidentifikasi pencapaian dan keahlian utama...',
+  'Merumuskan narasi profesional yang menarik...',
+  'Memfinalisikan ringkasan Anda...',
+];
+
+/**
  * AI Summary page — triggers AI summary generation for a resume,
  * shows progress via AIJobStatus, then presents AISummaryConfirm
  * for the user to review/edit before saving.
@@ -25,11 +37,22 @@ export default function AISummaryPage() {
   const { status, result, error, dispatch, reset } = useAIJob();
   const [confirmed, setConfirmed] = useState(false);
   const [savedText, setSavedText] = useState<string | null>(null);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setConfirmed(false);
     setSavedText(null);
-    await dispatch(`/api/resumes/${id}/ai/summary`);
+    setDispatchError(null);
+    try {
+      await dispatch(`/api/resumes/${id}/ai/summary`);
+    } catch {
+      // POST pemicu gagal (mis. 429 kuota / jaringan) — reset agar tidak
+      // berhenti di spinner, lalu tampilkan pesan.
+      reset();
+      setDispatchError(
+        'Gagal memulai generate summary. Periksa kuota harian Anda lalu coba lagi.',
+      );
+    }
   };
 
   const handleConfirmed = (text: string) => {
@@ -54,10 +77,12 @@ export default function AISummaryPage() {
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
-        <h1 className="text-xl font-semibold text-foreground">AI Summary</h1>
+        <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
+          AI <span className="text-gradient-ai">Summary</span>
+        </h1>
       </div>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
         Buat ringkasan profil profesional otomatis berdasarkan data resume Anda.
         Anda dapat mengedit hasilnya sebelum menyimpan.
       </p>
@@ -70,8 +95,18 @@ export default function AISummaryPage() {
         </Alert>
       )}
 
+      {dispatchError && (
+        <Alert variant="destructive">
+          <AlertDescription>{dispatchError}</AlertDescription>
+        </Alert>
+      )}
+
       {(status === 'idle' || status === 'failed') && !confirmed && (
-        <Button onClick={handleGenerate} disabled={isInFlight} className="gap-2">
+        <Button
+          onClick={handleGenerate}
+          disabled={isInFlight}
+          className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-fuchsia-500/20 transition-all hover:opacity-90 hover:shadow-lg hover:shadow-fuchsia-500/30"
+        >
           <Sparkles className="h-4 w-4" aria-hidden="true" />
           Generate AI Summary
         </Button>
@@ -85,7 +120,11 @@ export default function AISummaryPage() {
       )}
 
       {(isInFlight || status === 'failed') && (
-        <AIJobStatus status={status} error={error} />
+        <AIJobStatus
+          status={status}
+          error={error}
+          loadingMessages={SUMMARY_LOADING_MESSAGES}
+        />
       )}
 
       {status === 'completed' && result && !confirmed && (

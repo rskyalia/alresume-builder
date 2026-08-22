@@ -1,63 +1,47 @@
 'use client';
 
+import { Sparkles } from 'lucide-react';
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AIGeneratingState } from '@/components/ai/AIGeneratingState';
 import type { AIJobHookStatus } from '@/hooks/useAIJob';
 
 export interface AIJobStatusProps {
   status: AIJobHookStatus;
   result?: string | null;
   error?: string | null;
+  /** Pesan progres khusus fitur saat job sedang berjalan. */
+  loadingMessages?: string[];
 }
 
 /**
  * Renders the current state of an AI job:
  * - idle:               nothing
- * - pending/processing: animated spinner + "Sedang memproses..."
+ * - pending/processing: AIGeneratingState (animated orb + rotating messages + skeleton)
  * - completed:          result text in a card
  * - failed:             destructive Alert with the error message
  */
-export function AIJobStatus({ status, result, error }: AIJobStatusProps) {
+export function AIJobStatus({ status, result, error, loadingMessages }: AIJobStatusProps) {
   if (status === 'idle') {
     return null;
   }
 
   if (status === 'pending' || status === 'processing') {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-        {/* Spinner */}
-        <svg
-          className="h-5 w-5 animate-spin text-primary"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          />
-        </svg>
-        <span>Sedang memproses...</span>
-      </div>
-    );
+    return <AIGeneratingState messages={loadingMessages} />;
   }
 
   if (status === 'completed' && result) {
     return (
-      <div className="rounded-lg border bg-card p-4 shadow-sm">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Hasil AI
-        </p>
-        <pre className="whitespace-pre-wrap break-words text-sm text-card-foreground">
+      <div className="animate-fade-in-up rounded-xl border bg-card p-4 shadow-sm sm:p-5">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-tr from-violet-500/15 via-fuchsia-500/15 to-sky-500/15">
+            <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+          </span>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Hasil AI
+          </p>
+        </div>
+        <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-card-foreground">
           {result}
         </pre>
       </div>

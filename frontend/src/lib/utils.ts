@@ -37,3 +37,49 @@ export function getCookie(name: string): string | undefined {
     .find((row) => row.startsWith(name + "="));
   return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : undefined;
 }
+
+/**
+ * Copy text to the clipboard, returning whether it succeeded.
+ *
+ * Uses the async Clipboard API when available (secure contexts only — HTTPS or
+ * localhost). Falls back to a hidden textarea + document.execCommand("copy")
+ * so it also works on plain HTTP (e.g. LAN IP testing), where navigator.clipboard
+ * is undefined.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
+
+  if (
+    typeof navigator !== "undefined" &&
+    typeof window !== "undefined" &&
+    window.isSecureContext &&
+    navigator.clipboard?.writeText
+  ) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall through to the legacy fallback below
+    }
+  }
+
+  if (typeof document === "undefined") return false;
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, text.length);
+
+    const succeeded = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return succeeded;
+  } catch {
+    return false;
+  }
+}

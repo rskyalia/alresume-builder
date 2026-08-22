@@ -17,7 +17,7 @@ class RewriteExperienceJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 1;
-    public $timeout = 60;
+    public $timeout = 150;
 
     public function __construct(public string $aiJobId) {}
 

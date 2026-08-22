@@ -11,7 +11,8 @@ class OpenAIProvider
         $apiKey = config('services.openai.key');
 
         $response = Http::withOptions([
-            'verify' => 'C:\php8.5\cacert.pem',
+            // null/false → pakai CA bundle default sistem; string → path CA bundle kustom
+            'verify' => config('services.ai.ca_bundle') ?: true,
         ])->withHeaders([
             'Authorization' => "Bearer {$apiKey}",
             'Content-Type'  => 'application/json',

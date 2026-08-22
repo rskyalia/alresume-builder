@@ -10,6 +10,13 @@ use App\Services\AI\OpenAIProvider;
 
 class AIService
 {
+    /**
+     * Attempts per provider before giving up on it. Retrying once recovers
+     * from transient failures (network blip, momentary 429/5xx, cold start)
+     * without requiring the user to manually re-trigger the job.
+     */
+    private const MAX_PROVIDER_ATTEMPTS = 2;
+
     public function __construct(
         private readonly RateLimitService $rateLimitService,
         private readonly GeminiProvider $gemini,
@@ -48,18 +55,43 @@ class AIService
 
     /**
      * Call Gemini first; if it fails, fall back to OpenAI.
-     * If both providers fail, the last exception is re-thrown.
+     * Each provider is retried before moving on.
      *
-     * @throws AIProviderException when both providers fail.
+     * @throws AIProviderException when all providers/attempts fail.
      */
     public function callWithFallback(string $prompt): string
     {
         try {
-            return $this->gemini->generate($prompt);
+            return $this->withRetries(fn (): string => $this->gemini->generate($prompt));
         } catch (AIProviderException) {
-            // Gemini failed — fall through to OpenAI fallback
+            // Gemini failed after retries — fall through to OpenAI fallback
         }
 
-        return $this->openAI->generate($prompt);
+        return $this->withRetries(fn (): string => $this->openAI->generate($prompt));
+    }
+
+    /**
+     * Run a provider call, retrying after a short pause so transient
+     * failures don't fail the whole AI job.
+     *
+     * @throws AIProviderException when every attempt fails.
+     */
+    private function withRetries(callable $call): string
+    {
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= self::MAX_PROVIDER_ATTEMPTS; $attempt++) {
+            try {
+                return $call();
+            } catch (AIProviderException $e) {
+                $lastException = $e;
+
+                if ($attempt < self::MAX_PROVIDER_ATTEMPTS) {
+                    sleep(2); // brief pause before retrying a transient failure
+                }
+            }
+        }
+
+        throw $lastException;
     }
 }

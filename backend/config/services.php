@@ -43,4 +43,20 @@ return [
         'key' => env('OPENAI_API_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI HTTP Client
+    |--------------------------------------------------------------------------
+    |
+    | Opsi verifikasi SSL untuk HTTP client yang memanggil API AI (Gemini/OpenAI).
+    | Kosongkan AI_CA_BUNDLE agar memakai sertifikat sistem default (disarankan
+    | untuk Linux/production). Isi path CA bundle lokal bila diperlukan,
+    | contoh di Windows/XAMPP: AI_CA_BUNDLE=C:\php\extras\ssl\cacert.pem
+    |
+    */
+
+    'ai' => [
+        'ca_bundle' => env('AI_CA_BUNDLE'),
+    ],
+
 ];

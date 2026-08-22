@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, AlertCircle, FileText } from 'lucide-react';
+import { Plus, AlertCircle, FileText, LayoutDashboard } from 'lucide-react';
 
 import { useResumes } from '@/hooks/useResumes';
+import { useAuth } from '@/hooks/useAuth';
 import { ResumeCard } from '@/components/resume/ResumeCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +18,7 @@ function DashboardSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-lg border bg-background p-4 space-y-3">
+        <div key={i} className="space-y-3 rounded-xl border bg-background p-4">
           <Skeleton className="h-5 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
           <div className="flex gap-2 pt-2">
@@ -34,14 +35,25 @@ function DashboardSkeleton() {
 
 function EmptyState({ onCreateClick, disabled }: { onCreateClick: () => void; disabled: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-background py-16 text-center">
-      <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
-      <h3 className="text-lg font-semibold mb-1">Belum ada resume</h3>
-      <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+    <div className="animate-fade-in-up relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed bg-background py-16 text-center">
+      {/* Decorative gradient glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-20 left-1/2 h-48 w-72 -translate-x-1/2 rounded-full bg-gradient-to-tr from-violet-500/10 via-fuchsia-500/10 to-sky-500/10 blur-3xl"
+      />
+      <span className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/15 via-fuchsia-500/15 to-sky-500/15">
+        <FileText className="h-8 w-8 text-muted-foreground/70" aria-hidden="true" />
+      </span>
+      <h3 className="relative mb-1 text-lg font-semibold">Belum ada resume</h3>
+      <p className="relative mb-6 max-w-xs text-sm leading-relaxed text-muted-foreground">
         Buat resume pertamamu dan mulai perjalanan karier profesionalmu.
       </p>
-      <Button onClick={onCreateClick} disabled={disabled}>
-        <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
+      <Button
+        onClick={onCreateClick}
+        disabled={disabled}
+        className="relative gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-fuchsia-500/20 transition-all hover:opacity-90 hover:shadow-lg hover:shadow-fuchsia-500/30"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
         Buat Resume Pertama
       </Button>
     </div>
@@ -53,6 +65,7 @@ function EmptyState({ onCreateClick, disabled }: { onCreateClick: () => void; di
 export default function DashboardPage() {
   const router = useRouter();
   const { resumes, user, isLoading, deleteResume, createResume } = useResumes();
+  const { user: authUser } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -75,40 +88,55 @@ export default function DashboardPage() {
     }
   }
 
+  const displayName = authUser?.name?.trim();
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Kelola semua resume kamu di sini.
-          </p>
-        </div>
+      {/* Header with decorative gradient */}
+      <div className="relative overflow-hidden rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-gradient-to-tr from-violet-500/15 via-fuchsia-500/10 to-sky-500/15 blur-3xl"
+        />
+        <div className="relative flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="mb-0.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
+              Dashboard
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Selamat datang kembali{displayName ? `, ${displayName}` : ''}
+            </h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Kelola semua resume kamu di sini.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-          {!isLoading && (
-            <CreditBadge plan={user.plan} credits={user.resume_credits} />
-          )}
-          <Button
-            onClick={handleCreateResume}
-            disabled={noCredits || isCreating || isLoading}
-          >
-            {isCreating ? (
-              <>
-                <span
-                  className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"
-                  aria-hidden="true"
-                />
-                Membuat...
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-                Buat Resume Baru
-              </>
+          <div className="flex items-center gap-3">
+            {!isLoading && (
+              <CreditBadge plan={user.plan} credits={user.resume_credits} />
             )}
-          </Button>
+            <Button
+              onClick={handleCreateResume}
+              disabled={noCredits || isCreating || isLoading}
+              className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-fuchsia-500/20 transition-all hover:opacity-90 hover:shadow-lg hover:shadow-fuchsia-500/30"
+            >
+              {isCreating ? (
+                <>
+                  <span
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                    aria-hidden="true"
+                  />
+                  Membuat...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Buat Resume Baru
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -143,20 +171,22 @@ export default function DashboardPage() {
         <EmptyState onCreateClick={handleCreateResume} disabled={noCredits} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {resumes.map((resume) => (
-            <ResumeCard
+          {resumes.map((resume, index) => (
+            <div
               key={resume.id}
-              resume={resume}
-              onDelete={deleteResume}
-            />
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
+            >
+              <ResumeCard resume={resume} onDelete={deleteResume} />
+            </div>
           ))}
         </div>
       )}
 
       {/* Resume count footer */}
       {!isLoading && resumes.length > 0 && (
-        <p className="text-xs text-muted-foreground text-right">
-          {resumes.length} resume
+        <p className="text-right text-xs text-muted-foreground">
+          {resumes.length} resume tersimpan
         </p>
       )}
     </div>

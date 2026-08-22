@@ -17,6 +17,20 @@ export interface ExperienceRewriteConfirmProps {
   onCancel: () => void;
 }
 
+const FALLBACK_ERROR = 'Gagal menyimpan deskripsi pengalaman. Silakan coba lagi.';
+
+function extractApiErrorMessage(err: unknown): string {
+  const response =
+    typeof err === 'object' && err !== null && 'response' in err
+      ? (err as { response?: unknown }).response
+      : undefined;
+  const message =
+    typeof response === 'object' && response !== null && 'data' in response
+      ? (response as { data?: { message?: unknown } }).data?.message
+      : undefined;
+  return typeof message === 'string' && message.length > 0 ? message : FALLBACK_ERROR;
+}
+
 /**
  * Shows the AI-rewritten experience description in an editable textarea.
  * On "Simpan", POSTs to the confirm endpoint.
@@ -42,16 +56,12 @@ export function ExperienceRewriteConfirm({
 
     try {
       await apiClient.post<ApiResponse<unknown>>(
-        `/api/resumes/${resumeId}/experience/${experienceId}/ai/rewrite/confirm`,
+        `/api/resumes/${resumeId}/experiences/${experienceId}/ai/rewrite/confirm`,
         { description_text: text },
       );
       onConfirmed(text);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Gagal menyimpan deskripsi pengalaman. Silakan coba lagi.';
-      setError(message);
+      setError(extractApiErrorMessage(err));
     } finally {
       setIsSaving(false);
     }

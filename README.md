@@ -134,8 +134,10 @@ Backend berjalan di `http://localhost:8000`.
 Buka terminal terpisah dan jalankan:
 
 ```bash
-php artisan queue:work
+php artisan queue:work --sleep=1 --backoff=5
 ```
+
+> **Catatan:** `--sleep=1` membuat worker memeriksa job baru setiap 1 detik (default 3 detik), sehingga hasil AI muncul lebih cepat. Jika worker sudah berjalan sejak sebelum perubahan kode (mis. `timeout`/retry job diubah), restart worker agar properti job baru terbaca.
 
 Queue worker diperlukan agar job AI (summary, experience rewrite, ATS score, cover letter) dapat diproses. Tanpa worker aktif, semua trigger AI akan tersimpan di queue tapi tidak dieksekusi.
 

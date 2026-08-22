@@ -15,7 +15,7 @@ class UploadController extends Controller
      */
     public function uploadPhoto(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $resume);
 
         $request->validate([
             'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
@@ -43,7 +43,7 @@ class UploadController extends Controller
      */
     public function deletePhoto(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $resume);
 
         if ($resume->photo_path) {
             Storage::disk('public')->delete($resume->photo_path);
@@ -59,7 +59,7 @@ class UploadController extends Controller
      */
     public function uploadCertificateFile(Request $request, Resume $resume, Certificate $certificate): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('manageSection', [$resume, $certificate]);
 
         $request->validate([
             'file' => ['required', 'file', 'mimes:pdf', 'max:5120'],
@@ -87,7 +87,7 @@ class UploadController extends Controller
      */
     public function deleteCertificateFile(Request $request, Resume $resume, Certificate $certificate): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('manageSection', [$resume, $certificate]);
 
         if ($certificate->file_path) {
             Storage::disk('public')->delete($certificate->file_path);

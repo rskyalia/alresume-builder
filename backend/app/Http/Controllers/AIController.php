@@ -24,7 +24,7 @@ class AIController extends Controller
      */
     public function triggerSummary(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $resume);
 
         $job = $this->aiService->dispatchJob('summary', $resume);
 
@@ -45,8 +45,7 @@ class AIController extends Controller
      */
     public function triggerExperienceRewrite(Request $request, Resume $resume, Experience $experience): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
-        abort_if($experience->resume_id !== $resume->id, 403);
+        $this->authorize('manageSection', [$resume, $experience]);
 
         $job = $this->aiService->dispatchJob('experience_rewrite', $resume, [
             'experience_id' => $experience->id,
@@ -69,7 +68,7 @@ class AIController extends Controller
      */
     public function triggerATSScore(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $resume);
 
         $job = $this->aiService->dispatchJob('ats_score', $resume);
 
@@ -92,7 +91,7 @@ class AIController extends Controller
      */
     public function triggerCoverLetter(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $resume);
 
         $validated = $request->validate([
             'company_name'  => ['required', 'string', 'max:255'],
@@ -119,7 +118,7 @@ class AIController extends Controller
      */
     public function getJobStatus(Request $request, AiJob $aiJob): JsonResponse
     {
-        abort_if($aiJob->user_id !== $request->user()->id, 403);
+        $this->authorize('view', $aiJob);
 
         return response()->json([
             'success' => true,
@@ -142,7 +141,7 @@ class AIController extends Controller
      */
     public function confirmSummary(Request $request, Resume $resume): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $resume);
 
         $validated = $request->validate([
             'summary_text' => ['required', 'string'],
@@ -167,8 +166,7 @@ class AIController extends Controller
      */
     public function confirmExperienceRewrite(Request $request, Resume $resume, Experience $experience): JsonResponse
     {
-        abort_if($resume->user_id !== $request->user()->id, 403);
-        abort_if($experience->resume_id !== $resume->id, 403);
+        $this->authorize('manageSection', [$resume, $experience]);
 
         $validated = $request->validate([
             'description_text' => ['required', 'string'],
