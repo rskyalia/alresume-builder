@@ -12,32 +12,7 @@ use Illuminate\Support\Str;
 
 class PDFService
 {
-    /**
-     * Path ke Chrome executable (Puppeteer cache atau system Chrome).
-     */
-    private function findChrome(): string
-    {
-        $candidates = [
-            // Puppeteer downloaded chrome
-            getenv('USERPROFILE') . '\\.cache\\puppeteer\\chrome\\win64-152.0.7977.42\\chrome-win64\\chrome.exe',
-            getenv('HOME') . '/.cache/puppeteer/chrome/win64-152.0.7977.42/chrome-win64/chrome',
-            // System Chrome (Windows)
-            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-            // System Chrome (Linux/Mac)
-            '/usr/bin/google-chrome',
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium',
-        ];
 
-        foreach ($candidates as $path) {
-            if (file_exists($path)) {
-                return $path;
-            }
-        }
-
-        throw new \RuntimeException('Chrome/Chromium tidak ditemukan. Install Chrome atau jalankan: npx puppeteer browsers install chrome');
-    }
 
     public function getAvailableTemplates(User $user): Collection
     {
@@ -86,21 +61,16 @@ class PDFService
 
         file_put_contents($inputPath, $renderedHtml);
 
-        // Convert backslashes to forward slashes for file:// URL
-        $inputUrl = 'file:///' . str_replace('\\', '/', $inputPath);
-
-        $chrome = $this->findChrome();
-
-        // Build Chrome CLI command for headless PDF generation
+        $scriptPath = base_path('scripts/pdf-generator.js');
+        
         $cmd = sprintf(
-            '"%s" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage ' .
-            '"--print-to-pdf=%s" --print-to-pdf-no-header "%s" 2>&1',
-            $chrome,
-            str_replace('\\', '/', $outputPath),
-            $inputUrl
+            'node "%s" --input="%s" --output="%s" 2>&1',
+            $scriptPath,
+            $inputPath,
+            $outputPath
         );
 
-        $output   = shell_exec($cmd);
+        $output = shell_exec($cmd);
         $pdfExists = file_exists($outputPath);
 
         @unlink($inputPath);
